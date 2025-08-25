@@ -1,30 +1,26 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiService } from '@/services/api';
-import { APIMatch, MatchFilters, GroupedMatches, SportType } from '@/types/events';
+import { SportsEvent, EventFilters, GroupedEvents } from '@/types/events';
 import { useToast } from '@/hooks/use-toast';
 
-export function useMatches() {
+export function useEvents() {
   const { toast } = useToast();
-  const [filters, setFilters] = useState<MatchFilters>({
+  const [filters, setFilters] = useState<EventFilters>({
     sport: 'All',
     searchQuery: '',
     selectedDate: undefined,
-    liveOnly: false,
   });
 
   const {
-    data: matchesData,
+    data: eventsData,
     isLoading,
     error,
     refetch,
     isRefetching,
   } = useQuery({
-    queryKey: ['matches', filters.sport, filters.liveOnly ? 'live' : 'all'],
-    queryFn: () => apiService.fetchMatches(
-      filters.sport === 'All' ? undefined : filters.sport,
-      filters.liveOnly ? 'live' : 'all'
-    ),
+    queryKey: ['events'],
+    queryFn: () => apiService.fetchEvents(),
     refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
     staleTime: 2 * 60 * 1000, // Consider data stale after 2 minutes
     retry: 3,
@@ -35,41 +31,40 @@ export function useMatches() {
     try {
       await refetch();
       toast({
-        title: "Matches Updated",
-        description: "Successfully refreshed match data",
+        title: "Events Updated",
+        description: "Successfully refreshed event data",
       });
     } catch (error) {
       toast({
         title: "Refresh Failed",
-        description: "Failed to update matches. Please try again.",
+        description: "Failed to update events. Please try again.",
         variant: "destructive",
       });
     }
   }, [refetch, toast]);
 
-  // Process and filter matches
-  const processedMatches = useCallback(() => {
-    if (!matchesData) return { grouped: {}, all: [], dates: [] };
+  // Process and filter events
+  const processedEvents = useCallback(() => {
+    if (!eventsData?.events) return { grouped: {}, all: [], dates: [] };
 
-    const allMatches = matchesData.map(match => ({
-      ...match,
-      dateString: new Date(match.date).toISOString().split('T')[0]
-    }));
+    const allEvents: (SportsEvent & { date: string })[] = [];
+    
+    // Flatten all events with their dates
+    Object.entries(eventsData.events).forEach(([date, events]) => {
+      events.forEach(event => {
+        allEvents.push({ ...event, date });
+      });
+    });
 
     // Apply filters
-    let filteredMatches = allMatches.filter(match => {
+    let filteredEvents = allEvents.filter(event => {
       // Sport filter
-      if (filters.sport !== 'All' && match.category !== filters.sport) {
+      if (filters.sport !== 'All' && event.sport !== filters.sport) {
         return false;
       }
 
       // Date filter
-      if (filters.selectedDate && match.dateString !== filters.selectedDate) {
-        return false;
-      }
-
-      // Live filter
-      if (filters.liveOnly && !match.live) {
+      if (filters.selectedDate && event.date !== filters.selectedDate) {
         return false;
       }
 
@@ -77,43 +72,45 @@ export function useMatches() {
       if (filters.searchQuery) {
         const query = filters.searchQuery.toLowerCase();
         return (
-          match.title.toLowerCase().includes(query) ||
-          match.league.toLowerCase().includes(query) ||
-          match.category.toLowerCase().includes(query) ||
-          (match.teams?.home?.name.toLowerCase().includes(query)) ||
-          (match.teams?.away?.name.toLowerCase().includes(query))
+          event.match.toLowerCase().includes(query) ||
+          event.tournament.toLowerCase().includes(query) ||
+          event.sport.toLowerCase().includes(query)
         );
       }
 
       return true;
     });
 
-    // Sort by date
-    filteredMatches.sort((a, b) => a.date - b.date);
+    // Sort by timestamp
+    filteredEvents.sort((a, b) => a.unix_timestamp - b.unix_timestamp);
 
     // Group by date
-    const grouped: GroupedMatches = {};
-    filteredMatches.forEach(match => {
-      if (!grouped[match.dateString]) {
-        grouped[match.dateString] = [];
+    const grouped: GroupedEvents = {};
+    filteredEvents.forEach(event => {
+      if (!grouped[event.date]) {
+        grouped[event.date] = [];
       }
-      grouped[match.dateString].push(match);
+      grouped[event.date].push(event);
     });
 
     // Get available dates for filter
-    const dates = [...new Set(allMatches.map(m => m.dateString))].sort();
+    const dates = Object.keys(eventsData.events).sort();
 
     return {
       grouped,
-      all: filteredMatches,
+      all: filteredEvents,
       dates,
     };
-  }, [matchesData, filters]);
+  }, [eventsData, filters]);
 
-  const { grouped: groupedMatches, all: allMatches, dates: availableDates } = processedMatches();
+  const { grouped: groupedEvents, all: allEvents, dates: availableDates } = processedEvents();
 
-  // Calculate live matches
-  const liveMatches = allMatches.filter(match => match.live);
+  // Calculate live events
+  const liveEvents = allEvents.filter(event => {
+    const eventDate = new Date(event.unix_timestamp * 1000);
+    const now = new Date();
+    return eventDate <= now && eventDate.getTime() > now.getTime() - 3 * 60 * 60 * 1000;
+  });
 
   // Handle errors
   useEffect(() => {
@@ -127,10 +124,10 @@ export function useMatches() {
   }, [error, toast]);
 
   return {
-    groupedMatches,
-    allMatches,
+    groupedEvents,
+    allEvents,
     availableDates,
-    liveMatches,
+    liveEvents,
     filters,
     setFilters,
     isLoading,
