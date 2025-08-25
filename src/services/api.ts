@@ -1,16 +1,16 @@
-import { EventsResponse } from '@/types/events';
+import { APIMatch, MatchesResponse, SportType } from '@/types/events';
 
-const API_BASE_URL = 'https://topembed.pw/api.php';
+const API_BASE_URL = 'http://localhost:8080/api'; // Update this to your actual API base URL
 
 // CORS proxy fallback if needed
 const PROXY_URL = 'https://api.allorigins.win/raw?url=';
 
 class ApiService {
-  private cache: Map<string, { data: EventsResponse; timestamp: number }> = new Map();
+  private cache: Map<string, { data: APIMatch[]; timestamp: number }> = new Map();
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-  async fetchEvents(): Promise<EventsResponse> {
-    const cacheKey = 'events';
+  async fetchMatches(sport?: SportType, type: 'all' | 'live' | 'today' | 'top-today' = 'all'): Promise<APIMatch[]> {
+    const cacheKey = `matches-${sport || 'all'}-${type}`;
     const cached = this.cache.get(cacheKey);
     
     // Return cached data if still valid
@@ -18,8 +18,24 @@ class ApiService {
       return cached.data;
     }
 
-    let url = API_BASE_URL;
-    let fallbackUsed = false;
+    let endpoint = '/matches';
+    if (sport && sport !== 'All') {
+      endpoint = `/${sport}/matches`;
+    }
+    
+    switch (type) {
+      case 'live':
+        endpoint += '/live';
+        break;
+      case 'today':
+        endpoint += '/today';
+        break;
+      case 'top-today':
+        endpoint += '/top-today';
+        break;
+    }
+
+    const url = `${API_BASE_URL}${endpoint}`;
 
     try {
       const response = await fetch(url, {
@@ -34,73 +50,85 @@ class ApiService {
       }
 
       const data = await response.json();
+      const matches = Array.isArray(data) ? data : data.matches || [];
       
       // Cache the successful response
-      this.cache.set(cacheKey, { data, timestamp: Date.now() });
-      return data;
+      this.cache.set(cacheKey, { data: matches, timestamp: Date.now() });
+      return matches;
       
     } catch (error) {
-      console.warn('Direct API call failed, trying CORS proxy...', error);
-      
-      try {
-        // Fallback to CORS proxy
-        url = `${PROXY_URL}${encodeURIComponent(API_BASE_URL)}`;
-        fallbackUsed = true;
-        
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-          throw new Error(`Proxy HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        
-        // Cache the successful response
-        this.cache.set(cacheKey, { data, timestamp: Date.now() });
-        return data;
-        
-      } catch (proxyError) {
-        console.error('Both direct and proxy API calls failed:', proxyError);
-        
-        // Return mock data for development/demo purposes
-        return this.getMockData();
-      }
+      console.warn('API call failed, using mock data...', error);
+      return this.getMockData();
     }
   }
 
-  private getMockData(): EventsResponse {
-    const today = new Date().toISOString().split('T')[0];
-    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  async fetchSports(): Promise<SportType[]> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/sports`);
+      if (response.ok) {
+        const sports = await response.json();
+        return sports;
+      }
+    } catch (error) {
+      console.warn('Failed to fetch sports, using defaults', error);
+    }
     
-    return {
-      events: {
-        [today]: [
-          {
-            unix_timestamp: Date.now() + 3600000, // 1 hour from now
-            sport: 'Football',
-            tournament: 'NFL',
-            match: 'Kansas City Chiefs - Buffalo Bills',
-            channels: ['https://topembed.pw/channel/FOXSports1[USA]', 'https://topembed.pw/channel/ESPN[USA]']
-          },
-          {
-            unix_timestamp: Date.now() + 7200000, // 2 hours from now
-            sport: 'Basketball',
-            tournament: 'NBA',
-            match: 'Los Angeles Lakers - Boston Celtics',
-            channels: ['https://topembed.pw/channel/TNT[USA]']
-          }
-        ],
-        [tomorrow]: [
-          {
-            unix_timestamp: Date.now() + 86400000 + 3600000, // Tomorrow + 1 hour
-            sport: 'Tennis',
-            tournament: 'ATP US Open',
-            match: 'Novak Djokovic - Carlos Alcaraz',
-            channels: ['https://topembed.pw/channel/ESPNTennis[USA]']
-          }
+    return ['football', 'basketball', 'tennis', 'baseball', 'hockey', 'soccer'];
+  }
+
+  private getMockData(): APIMatch[] {
+    const now = Date.now();
+    
+    return [
+      {
+        id: '1',
+        slug: 'chiefs-vs-bills',
+        title: 'Kansas City Chiefs vs Buffalo Bills',
+        live: true,
+        category: 'football',
+        date: now + 3600000, // 1 hour from now
+        popular: true,
+        teams: {
+          home: { name: 'Kansas City Chiefs', badge: '/logos/chiefs.png' },
+          away: { name: 'Buffalo Bills', badge: '/logos/bills.png' }
+        },
+        league: 'NFL',
+        sources: [
+          { id: '1', name: 'Stream 1', embed: 'https://example.com/stream1' },
+          { id: '2', name: 'Stream 2', embed: 'https://example.com/stream2' }
+        ]
+      },
+      {
+        id: '2',
+        slug: 'lakers-vs-celtics',
+        title: 'Los Angeles Lakers vs Boston Celtics',
+        live: false,
+        category: 'basketball',
+        date: now + 7200000, // 2 hours from now
+        popular: true,
+        teams: {
+          home: { name: 'Los Angeles Lakers', badge: '/logos/lakers.png' },
+          away: { name: 'Boston Celtics', badge: '/logos/celtics.png' }
+        },
+        league: 'NBA',
+        sources: [
+          { id: '3', name: 'Stream 3', embed: 'https://example.com/stream3' }
+        ]
+      },
+      {
+        id: '3',
+        slug: 'djokovic-vs-alcaraz',
+        title: 'Novak Djokovic vs Carlos Alcaraz',
+        live: false,
+        category: 'tennis',
+        date: now + 86400000 + 3600000, // Tomorrow + 1 hour
+        popular: false,
+        league: 'ATP US Open',
+        sources: [
+          { id: '4', name: 'Stream 4', embed: 'https://example.com/stream4' }
         ]
       }
-    };
+    ];
   }
 
   // Clear cache manually if needed
