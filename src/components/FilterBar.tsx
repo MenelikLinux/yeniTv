@@ -19,7 +19,7 @@ interface FilterBarProps {
   className?: string;
 }
 
-const SPORTS: SportType[] = ['All', 'Football', 'Basketball', 'Baseball', 'Tennis', 'Hockey', 'Soccer'];
+const SPORTS: SportType[] = ['All', 'Football', 'Basketball', 'Baseball', 'Tennis', 'Hockey', 'Soccer', 'Equestrian'];
 
 export function FilterBar({ filters, onFiltersChange, availableDates, className }: FilterBarProps) {
   const getSportIcon = (sport: SportType) => {
@@ -31,6 +31,7 @@ export function FilterBar({ filters, onFiltersChange, availableDates, className 
       'Tennis': '🎾',
       'Hockey': '🏒',
       'Soccer': '⚽',
+      'Equestrian': '🏇',
     };
     return icons[sport] || '🏟️';
   };

@@ -16,7 +16,7 @@ export interface GroupedEvents {
   [date: string]: SportsEvent[];
 }
 
-export type SportType = 'Football' | 'Basketball' | 'Tennis' | 'Baseball' | 'Hockey' | 'Soccer' | 'All';
+export type SportType = 'Football' | 'Basketball' | 'Tennis' | 'Baseball' | 'Hockey' | 'Soccer' | 'Equestrian' | 'All';
 
 export interface EventFilters {
   sport: SportType;
