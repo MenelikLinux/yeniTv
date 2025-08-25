@@ -4,13 +4,12 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 interface HeaderProps {
-  onRefresh: () => void;
-  isRefreshing: boolean;
-  liveEventCount: number;
+  totalMatches: number;
+  liveMatches: number;
   className?: string;
 }
 
-export function Header({ onRefresh, isRefreshing, liveEventCount, className }: HeaderProps) {
+export function Header({ totalMatches, liveMatches, className }: HeaderProps) {
   return (
     <header className={cn('border-b border-border/50 bg-background/80 backdrop-blur-sm sticky top-0 z-50', className)}>
       <div className="container mx-auto px-4 py-4">
@@ -30,23 +29,15 @@ export function Header({ onRefresh, isRefreshing, liveEventCount, className }: H
           </div>
 
           <div className="flex items-center space-x-4">
-            {liveEventCount > 0 && (
+            <div className="text-sm text-muted-foreground">
+              {totalMatches} matches
+            </div>
+            {liveMatches > 0 && (
               <Badge className="bg-live/20 text-live border-live/30 animate-pulse">
                 <Radio className="w-3 h-3 mr-1" />
-                {liveEventCount} Live
+                {liveMatches} Live
               </Badge>
             )}
-            
-            <Button
-              onClick={onRefresh}
-              disabled={isRefreshing}
-              variant="outline"
-              size="sm"
-              className="border-border/50 hover:bg-muted/50"
-            >
-              <RefreshCw className={cn('w-4 h-4 mr-2', isRefreshing && 'animate-spin')} />
-              Refresh
-            </Button>
           </div>
         </div>
       </div>

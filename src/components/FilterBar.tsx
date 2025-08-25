@@ -9,29 +9,37 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { EventFilters, SportType } from '@/types/events';
+import { MatchFilters, SportType } from '@/types/events';
 import { cn } from '@/lib/utils';
 
 interface FilterBarProps {
-  filters: EventFilters;
-  onFiltersChange: (filters: EventFilters) => void;
+  filters: MatchFilters;
+  onFiltersChange: (filters: MatchFilters) => void;
+  onRefresh: () => void;
+  isRefreshing?: boolean;
   availableDates: string[];
-  className?: string;
+  liveCount: number;
 }
 
-const SPORTS: SportType[] = ['All', 'Football', 'Basketball', 'Baseball', 'Tennis', 'Hockey', 'Soccer', 'Equestrian'];
+const SPORTS: SportType[] = ['All', 'football', 'basketball', 'baseball', 'tennis', 'hockey', 'soccer'];
 
-export function FilterBar({ filters, onFiltersChange, availableDates, className }: FilterBarProps) {
+export function FilterBar({ 
+  filters, 
+  onFiltersChange, 
+  onRefresh, 
+  isRefreshing = false,
+  availableDates,
+  liveCount
+}: FilterBarProps) {
   const getSportIcon = (sport: SportType) => {
     const icons = {
       'All': '🏟️',
-      'Football': '🏈',
-      'Basketball': '🏀',
-      'Baseball': '⚾',
-      'Tennis': '🎾',
-      'Hockey': '🏒',
-      'Soccer': '⚽',
-      'Equestrian': '🏇',
+      'football': '🏈',
+      'basketball': '🏀',
+      'baseball': '⚾',
+      'tennis': '🎾',
+      'hockey': '🏒',
+      'soccer': '⚽',
     };
     return icons[sport] || '🏟️';
   };
@@ -55,7 +63,7 @@ export function FilterBar({ filters, onFiltersChange, availableDates, className 
   };
 
   return (
-    <div className={cn('space-y-4', className)}>
+    <div className="space-y-4">{/* Search Bar */}
       {/* Search Bar */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
@@ -106,7 +114,7 @@ export function FilterBar({ filters, onFiltersChange, availableDates, className 
               onClick={() => onFiltersChange({ ...filters, sport })}
             >
               <span className="mr-1">{getSportIcon(sport)}</span>
-              {sport}
+              {sport === 'All' ? 'All Sports' : sport.charAt(0).toUpperCase() + sport.slice(1)}
             </Badge>
           ))}
         </div>
@@ -119,7 +127,7 @@ export function FilterBar({ filters, onFiltersChange, availableDates, className 
           <span>Active filters:</span>
           {filters.sport !== 'All' && (
             <Badge variant="secondary" className="text-xs">
-              {filters.sport}
+              {filters.sport.charAt(0).toUpperCase() + filters.sport.slice(1)}
             </Badge>
           )}
           {filters.selectedDate && (
@@ -135,7 +143,7 @@ export function FilterBar({ filters, onFiltersChange, availableDates, className 
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onFiltersChange({ sport: 'All', searchQuery: '', selectedDate: undefined })}
+            onClick={() => onFiltersChange({ sport: 'All', searchQuery: '', selectedDate: undefined, liveOnly: false })}
             className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
           >
             Clear all

@@ -5,15 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { StreamModal } from './StreamModal';
-import { SportsEvent } from '@/types/events';
+import { APIMatch } from '@/types/events';
 import { cn } from '@/lib/utils';
 
-interface EventCardProps {
-  event: SportsEvent;
+interface MatchCardProps {
+  match: APIMatch;
   className?: string;
 }
 
-export function EventCard({ event, className }: EventCardProps) {
+export function MatchCard({ match, className }: MatchCardProps) {
   const [streamModal, setStreamModal] = useState<{
     isOpen: boolean;
     streamUrl: string;
@@ -22,28 +22,27 @@ export function EventCard({ event, className }: EventCardProps) {
     streamUrl: '',
   });
 
-  const eventDate = new Date(event.unix_timestamp * 1000);
+  const matchDate = new Date(match.date);
   const now = new Date();
-  const isLive = eventDate <= now && eventDate.getTime() > now.getTime() - 3 * 60 * 60 * 1000; // Live if within 3 hours
-  const isUpcoming = eventDate > now && eventDate.getTime() - now.getTime() < 60 * 60 * 1000; // Upcoming if within 1 hour
+  const isLive = match.live;
+  const isUpcoming = matchDate > now && matchDate.getTime() - now.getTime() < 60 * 60 * 1000; // Upcoming if within 1 hour
 
   const getSportColor = (sport: string) => {
     const colors = {
-      'Football': 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-      'Basketball': 'bg-red-500/20 text-red-400 border-red-500/30',
-      'Baseball': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      'Tennis': 'bg-green-500/20 text-green-400 border-green-500/30',
-      'Hockey': 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
-      'Soccer': 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-      'Equestrian': 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+      'football': 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+      'basketball': 'bg-red-500/20 text-red-400 border-red-500/30',
+      'baseball': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+      'tennis': 'bg-green-500/20 text-green-400 border-green-500/30',
+      'hockey': 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+      'soccer': 'bg-purple-500/20 text-purple-400 border-purple-500/30',
     };
     return colors[sport as keyof typeof colors] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
   };
 
-  const handleStreamClick = (channelUrl: string) => {
+  const handleStreamClick = (embedUrl: string) => {
     setStreamModal({
       isOpen: true,
-      streamUrl: channelUrl,
+      streamUrl: embedUrl,
     });
   };
 
@@ -66,11 +65,28 @@ export function EventCard({ event, className }: EventCardProps) {
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
               <CardTitle className="text-lg font-bold text-foreground truncate">
-                {event.match}
+                {match.title}
               </CardTitle>
+              {match.teams && (
+                <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                  {match.teams.home && (
+                    <div className="flex items-center gap-2">
+                      <img src={match.teams.home.badge} alt="" className="w-5 h-5" onError={(e) => e.currentTarget.style.display = 'none'} />
+                      <span>{match.teams.home.name}</span>
+                    </div>
+                  )}
+                  <span>vs</span>
+                  {match.teams.away && (
+                    <div className="flex items-center gap-2">
+                      <img src={match.teams.away.badge} alt="" className="w-5 h-5" onError={(e) => e.currentTarget.style.display = 'none'} />
+                      <span>{match.teams.away.name}</span>
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="flex items-center gap-2 mt-2">
-                <Badge className={cn('text-xs font-medium border', getSportColor(event.sport))}>
-                  {event.sport}
+                <Badge className={cn('text-xs font-medium border', getSportColor(match.category))}>
+                  {match.category.charAt(0).toUpperCase() + match.category.slice(1)}
                 </Badge>
                 {isLive && (
                   <Badge className="bg-live/20 text-live border-live/30 animate-pulse">
@@ -83,6 +99,11 @@ export function EventCard({ event, className }: EventCardProps) {
                     Starting Soon
                   </Badge>
                 )}
+                {match.popular && (
+                  <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+                    Popular
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
@@ -93,26 +114,26 @@ export function EventCard({ event, className }: EventCardProps) {
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Trophy className="w-4 h-4" />
-                <span className="truncate">{event.tournament}</span>
+                <span className="truncate">{match.league}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />
-                <span>{format(eventDate, 'MMM d, h:mm a')}</span>
+                <span>{format(matchDate, 'MMM d, h:mm a')}</span>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">
-                {event.channels.length} stream{event.channels.length !== 1 ? 's' : ''} available
+                {match.sources.length} stream{match.sources.length !== 1 ? 's' : ''} available
               </span>
             </div>
 
             <div className="flex gap-2 flex-wrap">
-              {event.channels.slice(0, 2).map((channel, index) => (
+              {match.sources.slice(0, 2).map((source, index) => (
                 <Button
-                  key={index}
-                  onClick={() => handleStreamClick(channel)}
+                  key={source.id}
+                  onClick={() => handleStreamClick(source.embed)}
                   className={cn(
                     'flex-1 min-w-0 transition-smooth',
                     isLive 
@@ -121,16 +142,16 @@ export function EventCard({ event, className }: EventCardProps) {
                   )}
                 >
                   <Play className="w-4 h-4 mr-2" />
-                  Watch Stream {index + 1}
+                  {source.name || `Stream ${index + 1}`}
                 </Button>
               ))}
-              {event.channels.length > 2 && (
+              {match.sources.length > 2 && (
                 <Button
                   variant="outline"
-                  onClick={() => handleStreamClick(event.channels[2])}
+                  onClick={() => handleStreamClick(match.sources[2].embed)}
                   className="border-border/50 hover:bg-muted/50 text-muted-foreground"
                 >
-                  +{event.channels.length - 2} more
+                  +{match.sources.length - 2} more
                 </Button>
               )}
             </div>
@@ -142,9 +163,9 @@ export function EventCard({ event, className }: EventCardProps) {
         isOpen={streamModal.isOpen}
         onClose={closeStreamModal}
         streamUrl={streamModal.streamUrl}
-        matchTitle={event.match}
-        tournament={event.tournament}
-        sport={event.sport}
+        matchTitle={match.title}
+        tournament={match.league}
+        sport={match.category}
       />
     </>
   );
