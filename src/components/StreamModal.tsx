@@ -149,8 +149,6 @@ export function StreamModal({
                 className="w-full h-full border-0"
                 allow="autoplay; fullscreen; encrypted-media"
                 allowFullScreen
-                referrerPolicy="no-referrer-when-downgrade"
-                sandbox="allow-scripts allow-same-origin allow-forms allow-top-navigation allow-presentation"
                 onLoad={handleIframeLoad}
                 onError={handleIframeError}
                 title={`${matchTitle} - ${tournament}`}
