@@ -1,8 +1,8 @@
-import { APIMatch, MatchesResponse, SportType } from '@/types/events';
+import { APIMatch, RawEventsResponse, RawEvent, SportType } from '@/types/events';
 
-const API_BASE_URL = 'http://localhost:8080/api'; // Update this to your actual API base URL
+const API_BASE_URL = 'https://topembed.pw/api.php?format=json';
 
-// CORS proxy fallback if needed
+// CORS proxy for handling potential CORS issues
 const PROXY_URL = 'https://api.allorigins.win/raw?url=';
 
 class ApiService {
@@ -18,27 +18,8 @@ class ApiService {
       return cached.data;
     }
 
-    let endpoint = '/matches';
-    if (sport && sport !== 'All') {
-      endpoint = `/${sport}/matches`;
-    }
-    
-    switch (type) {
-      case 'live':
-        endpoint += '/live';
-        break;
-      case 'today':
-        endpoint += '/today';
-        break;
-      case 'top-today':
-        endpoint += '/top-today';
-        break;
-    }
-
-    const url = `${API_BASE_URL}${endpoint}`;
-
     try {
-      const response = await fetch(url, {
+      const response = await fetch(API_BASE_URL, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -49,31 +30,108 @@ class ApiService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
-      const matches = Array.isArray(data) ? data : data.matches || [];
+      const data: RawEventsResponse = await response.json();
+      const matches = this.transformEvents(data, sport, type);
       
       // Cache the successful response
       this.cache.set(cacheKey, { data: matches, timestamp: Date.now() });
       return matches;
       
     } catch (error) {
-      console.warn('API call failed, using mock data...', error);
-      return this.getMockData();
+      console.warn('API call failed, trying with CORS proxy...', error);
+      
+      try {
+        const response = await fetch(`${PROXY_URL}${encodeURIComponent(API_BASE_URL)}`);
+        const data: RawEventsResponse = await response.json();
+        const matches = this.transformEvents(data, sport, type);
+        
+        this.cache.set(cacheKey, { data: matches, timestamp: Date.now() });
+        return matches;
+      } catch (proxyError) {
+        console.warn('Proxy call also failed, using mock data...', proxyError);
+        return this.getMockData();
+      }
     }
   }
 
+  private transformEvents(data: RawEventsResponse, sport?: SportType, type?: string): APIMatch[] {
+    const allMatches: APIMatch[] = [];
+    const now = Date.now();
+
+    Object.entries(data.events || {}).forEach(([dateStr, events]) => {
+      events.forEach((event, index) => {
+        const eventTime = event.unix_timestamp * 1000; // Convert to milliseconds
+        const isLive = Math.abs(now - eventTime) < 3 * 60 * 60 * 1000; // Within 3 hours
+        
+        const match: APIMatch = {
+          id: `${dateStr}-${index}`,
+          slug: this.createSlug(event.match),
+          title: event.match,
+          live: isLive,
+          category: event.sport,
+          date: eventTime,
+          popular: ['Football', 'Basketball', 'Baseball', 'Soccer'].includes(event.sport),
+          league: event.tournament,
+          sources: event.channels.map((channel, idx) => ({
+            id: `${event.match}-${idx}`,
+            name: this.extractChannelName(channel),
+            embed: channel,
+          })),
+        };
+
+        allMatches.push(match);
+      });
+    });
+
+    // Apply filters
+    let filteredMatches = allMatches;
+
+    if (sport && sport !== 'All') {
+      filteredMatches = filteredMatches.filter(match => match.category === sport);
+    }
+
+    if (type === 'live') {
+      filteredMatches = filteredMatches.filter(match => match.live);
+    } else if (type === 'today') {
+      const today = new Date().toDateString();
+      filteredMatches = filteredMatches.filter(match => 
+        new Date(match.date).toDateString() === today
+      );
+    } else if (type === 'top-today') {
+      const today = new Date().toDateString();
+      filteredMatches = filteredMatches.filter(match => 
+        new Date(match.date).toDateString() === today && match.popular
+      );
+    }
+
+    return filteredMatches.sort((a, b) => a.date - b.date);
+  }
+
+  private createSlug(match: string): string {
+    return match.toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .trim();
+  }
+
+  private extractChannelName(channelUrl: string): string {
+    const match = channelUrl.match(/\/channel\/([^\/]+)/);
+    if (match) {
+      return match[1].replace(/\[.*?\]/g, '').trim() || 'Stream';
+    }
+    return 'Stream';
+  }
+
   async fetchSports(): Promise<SportType[]> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/sports`);
-      if (response.ok) {
-        const sports = await response.json();
-        return sports;
-      }
-    } catch (error) {
-      console.warn('Failed to fetch sports, using defaults', error);
+    // Extract sports from cached events data or use defaults
+    const allMatches = await this.fetchMatches();
+    const uniqueSports = [...new Set(allMatches.map(match => match.category as SportType))];
+    
+    if (uniqueSports.length > 0) {
+      return uniqueSports.sort();
     }
     
-    return ['football', 'basketball', 'tennis', 'baseball', 'hockey', 'soccer'];
+    return ['Football', 'Basketball', 'Tennis', 'Baseball', 'Hockey', 'Soccer', 'Softball'];
   }
 
   private getMockData(): APIMatch[] {

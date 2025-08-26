@@ -21,7 +21,7 @@ interface FilterBarProps {
   liveCount: number;
 }
 
-const SPORTS: SportType[] = ['All', 'football', 'basketball', 'baseball', 'tennis', 'hockey', 'soccer'];
+const SPORTS: SportType[] = ['All', 'Football', 'Basketball', 'Baseball', 'Tennis', 'Hockey', 'Soccer', 'Softball'];
 
 export function FilterBar({ 
   filters, 
@@ -34,12 +34,13 @@ export function FilterBar({
   const getSportIcon = (sport: SportType) => {
     const icons = {
       'All': '🏟️',
-      'football': '🏈',
-      'basketball': '🏀',
-      'baseball': '⚾',
-      'tennis': '🎾',
-      'hockey': '🏒',
-      'soccer': '⚽',
+      'Football': '🏈',
+      'Basketball': '🏀',
+      'Baseball': '⚾',
+      'Tennis': '🎾',
+      'Hockey': '🏒',
+      'Soccer': '⚽',
+      'Softball': '🥎',
     };
     return icons[sport] || '🏟️';
   };
@@ -114,7 +115,7 @@ export function FilterBar({
               onClick={() => onFiltersChange({ ...filters, sport })}
             >
               <span className="mr-1">{getSportIcon(sport)}</span>
-              {sport === 'All' ? 'All Sports' : sport.charAt(0).toUpperCase() + sport.slice(1)}
+              {sport === 'All' ? 'All Sports' : sport}
             </Badge>
           ))}
         </div>
@@ -127,7 +128,7 @@ export function FilterBar({
           <span>Active filters:</span>
           {filters.sport !== 'All' && (
             <Badge variant="secondary" className="text-xs">
-              {filters.sport.charAt(0).toUpperCase() + filters.sport.slice(1)}
+              {filters.sport}
             </Badge>
           )}
           {filters.selectedDate && (

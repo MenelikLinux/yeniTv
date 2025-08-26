@@ -1,3 +1,19 @@
+// Raw API response from topembed.pw
+export interface RawEvent {
+  unix_timestamp: number;
+  sport: string;
+  tournament: string;
+  match: string;
+  channels: string[];
+}
+
+export interface RawEventsResponse {
+  events: {
+    [date: string]: RawEvent[];
+  };
+}
+
+// Transformed interface for internal use
 export interface APIMatch {
   id: string;
   slug: string;
@@ -32,7 +48,7 @@ export interface GroupedMatches {
   [date: string]: APIMatch[];
 }
 
-export type SportType = 'football' | 'basketball' | 'tennis' | 'baseball' | 'hockey' | 'soccer' | 'All';
+export type SportType = 'Football' | 'Basketball' | 'Tennis' | 'Baseball' | 'Hockey' | 'Soccer' | 'Softball' | 'All';
 
 export interface MatchFilters {
   sport: SportType;
