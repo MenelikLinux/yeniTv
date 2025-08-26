@@ -18,6 +18,8 @@ interface StreamModalProps {
   matchTitle: string;
   tournament: string;
   sport: string;
+  sourceName?: string;
+  quality?: string;
 }
 
 export function StreamModal({
@@ -27,6 +29,8 @@ export function StreamModal({
   matchTitle,
   tournament,
   sport,
+  sourceName,
+  quality,
 }: StreamModalProps) {
   const [iframeError, setIframeError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -67,10 +71,20 @@ export function StreamModal({
               <DialogTitle className="text-xl font-bold text-foreground truncate mb-2">
                 {matchTitle}
               </DialogTitle>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Badge className={cn('text-xs font-medium border', getSportColor(sport))}>
                   {sport}
                 </Badge>
+                {sourceName && (
+                  <Badge variant="secondary" className="text-xs">
+                    {sourceName}
+                  </Badge>
+                )}
+                {quality && (
+                  <Badge variant="outline" className="text-xs text-muted-foreground">
+                    {quality}
+                  </Badge>
+                )}
                 <span className="text-sm text-muted-foreground truncate">{tournament}</span>
               </div>
             </div>

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { StreamModal } from './StreamModal';
 import { APIMatch } from '@/types/events';
+import { getBestStreams } from '@/utils/streamUtils';
 import { cn } from '@/lib/utils';
 
 interface MatchCardProps {
@@ -17,6 +18,8 @@ export function MatchCard({ match, className }: MatchCardProps) {
   const [streamModal, setStreamModal] = useState<{
     isOpen: boolean;
     streamUrl: string;
+    sourceName?: string;
+    quality?: string;
   }>({
     isOpen: false,
     streamUrl: '',
@@ -26,6 +29,8 @@ export function MatchCard({ match, className }: MatchCardProps) {
   const now = new Date();
   const isLive = match.live;
   const isUpcoming = matchDate > now && matchDate.getTime() - now.getTime() < 60 * 60 * 1000; // Upcoming if within 1 hour
+  
+  const bestStreams = getBestStreams(match.sources);
 
   const getSportColor = (sport: string) => {
     const colors = {
@@ -39,10 +44,12 @@ export function MatchCard({ match, className }: MatchCardProps) {
     return colors[sport as keyof typeof colors] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
   };
 
-  const handleStreamClick = (embedUrl: string) => {
+  const handleStreamClick = (embedUrl: string, sourceName?: string, quality?: string) => {
     setStreamModal({
       isOpen: true,
       streamUrl: embedUrl,
+      sourceName,
+      quality,
     });
   };
 
@@ -50,6 +57,8 @@ export function MatchCard({ match, className }: MatchCardProps) {
     setStreamModal({
       isOpen: false,
       streamUrl: '',
+      sourceName: undefined,
+      quality: undefined,
     });
   };
 
@@ -125,33 +134,38 @@ export function MatchCard({ match, className }: MatchCardProps) {
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">
-                {match.sources.length} stream{match.sources.length !== 1 ? 's' : ''} available
+                {bestStreams.length} stream{bestStreams.length !== 1 ? 's' : ''} available
               </span>
             </div>
 
             <div className="flex gap-2 flex-wrap">
-              {match.sources.slice(0, 2).map((source, index) => (
+              {bestStreams.slice(0, 2).map((source, index) => (
                 <Button
                   key={source.id}
-                  onClick={() => handleStreamClick(source.embed)}
+                  onClick={() => handleStreamClick(source.embed, source.name, source.quality)}
                   className={cn(
-                    'flex-1 min-w-0 transition-smooth',
+                    'flex-1 min-w-0 transition-smooth flex-col gap-1 h-auto py-2',
                     isLive 
                       ? 'gradient-live shadow-live hover:shadow-live/80 text-white border-0' 
                       : 'gradient-primary shadow-primary hover:shadow-primary/80 text-primary-foreground border-0'
                   )}
                 >
-                  <Play className="w-4 h-4 mr-2" />
-                  {source.name || `Stream ${index + 1}`}
+                  <div className="flex items-center gap-2">
+                    <Play className="w-4 h-4" />
+                    <span>{source.name || `Stream ${index + 1}`}</span>
+                  </div>
+                  {source.quality && (
+                    <span className="text-xs opacity-80">{source.quality}</span>
+                  )}
                 </Button>
               ))}
-              {match.sources.length > 2 && (
+              {bestStreams.length > 2 && (
                 <Button
                   variant="outline"
-                  onClick={() => handleStreamClick(match.sources[2].embed)}
+                  onClick={() => handleStreamClick(bestStreams[2].embed, bestStreams[2].name, bestStreams[2].quality)}
                   className="border-border/50 hover:bg-muted/50 text-muted-foreground"
                 >
-                  +{match.sources.length - 2} more
+                  +{bestStreams.length - 2} more
                 </Button>
               )}
             </div>
@@ -166,6 +180,8 @@ export function MatchCard({ match, className }: MatchCardProps) {
         matchTitle={match.title}
         tournament={match.league}
         sport={match.category}
+        sourceName={streamModal.sourceName}
+        quality={streamModal.quality}
       />
     </>
   );
