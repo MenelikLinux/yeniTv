@@ -24,7 +24,7 @@ const Index = () => {
       <div className="min-h-screen gradient-bg flex items-center justify-center">
         <div className="flex items-center gap-3 text-foreground">
           <Loader2 className="w-8 h-8 animate-spin" />
-          <span className="text-lg font-medium">Loading matches...</span>
+          <span className="text-lg font-medium">Yeni Tv Loading matches...</span>
         </div>
       </div>
     );
