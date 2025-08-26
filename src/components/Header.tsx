@@ -21,7 +21,7 @@ export function Header({ totalMatches, liveMatches, className }: HeaderProps) {
               </div>
               <div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
-                  SportStream Hub
+                  Yeni TV
                 </h1>
                 <p className="text-sm text-muted-foreground">Live sports streaming made easy</p>
               </div>
