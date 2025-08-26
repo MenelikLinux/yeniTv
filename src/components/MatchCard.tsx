@@ -65,65 +65,81 @@ export function MatchCard({ match, className }: MatchCardProps) {
   return (
     <>
       <Card className={cn(
-        'gradient-card shadow-card transition-smooth hover:shadow-primary/20 hover:scale-[1.02] border-border/50',
-        isLive && 'ring-2 ring-live pulse-live',
-        isUpcoming && 'ring-2 ring-accent',
+        'bg-gray-900/90 border-2 border-gray-800 rounded-xl overflow-hidden transition-all duration-300 hover:border-red-500/50 hover:shadow-lg hover:shadow-red-500/20',
+        isLive && 'border-red-500/80 shadow-lg shadow-red-500/30',
+        isUpcoming && 'border-orange-500/60 shadow-lg shadow-orange-500/20',
         className
       )}>
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <CardTitle className="text-lg font-bold text-foreground truncate">
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            {/* Match Title */}
+            <div>
+              <h3 className="text-white text-xl font-bold leading-tight mb-2">
                 {match.title}
-              </CardTitle>
+              </h3>
               {match.teams && (
-                <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                <div className="flex items-center justify-center gap-3 text-gray-300 text-sm">
                   {match.teams.home && (
                     <div className="flex items-center gap-2">
-                      <img src={match.teams.home.badge} alt="" className="w-5 h-5" onError={(e) => e.currentTarget.style.display = 'none'} />
-                      <span>{match.teams.home.name}</span>
+                      <img 
+                        src={match.teams.home.badge} 
+                        alt="" 
+                        className="w-4 h-4" 
+                        onError={(e) => e.currentTarget.style.display = 'none'} 
+                      />
+                      <span className="text-blue-400">{match.teams.home.name}</span>
                     </div>
                   )}
-                  <span>vs</span>
+                  <span className="text-gray-500 font-medium">vs</span>
                   {match.teams.away && (
                     <div className="flex items-center gap-2">
-                      <img src={match.teams.away.badge} alt="" className="w-5 h-5" onError={(e) => e.currentTarget.style.display = 'none'} />
-                      <span>{match.teams.away.name}</span>
+                      <img 
+                        src={match.teams.away.badge} 
+                        alt="" 
+                        className="w-4 h-4" 
+                        onError={(e) => e.currentTarget.style.display = 'none'} 
+                      />
+                      <span className="text-blue-400">{match.teams.away.name}</span>
                     </div>
                   )}
                 </div>
               )}
-              <div className="flex items-center gap-2 mt-2">
-                <Badge className={cn('text-xs font-medium border', getSportColor(match.category))}>
-                  {match.category.charAt(0).toUpperCase() + match.category.slice(1)}
-                </Badge>
-                {isLive && (
-                  <Badge className="bg-live/20 text-live border-live/30 animate-pulse">
-                    <div className="w-2 h-2 bg-live rounded-full mr-1" />
-                    LIVE
-                  </Badge>
-                )}
-                {isUpcoming && (
-                  <Badge className="bg-accent/20 text-accent border-accent/30">
-                    Starting Soon
-                  </Badge>
-                )}
-                {match.popular && (
-                  <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
-                    Popular
-                  </Badge>
-                )}
-              </div>
             </div>
-          </div>
-        </CardHeader>
 
-        <CardContent className="pt-0">
-          <div className="space-y-4">
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            {/* Badges Row */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge className={cn(
+                'text-xs font-medium px-3 py-1 rounded-full',
+                getSportColor(match.category)
+              )}>
+                {match.category.charAt(0).toUpperCase() + match.category.slice(1)}
+              </Badge>
+              
+              {isLive && (
+                <Badge className="bg-red-600 text-white border-0 px-3 py-1 rounded-full animate-pulse">
+                  <div className="w-2 h-2 bg-white rounded-full mr-1" />
+                  LIVE
+                </Badge>
+              )}
+              
+              {isUpcoming && (
+                <Badge className="bg-green-600 text-white border-0 px-3 py-1 rounded-full">
+                  Starting Soon
+                </Badge>
+              )}
+              
+              {match.popular && (
+                <Badge className="bg-yellow-600 text-white border-0 px-3 py-1 rounded-full">
+                  Popular
+                </Badge>
+              )}
+            </div>
+
+            {/* League and Time Info */}
+            <div className="flex items-center gap-4 text-sm text-gray-400">
               <div className="flex items-center gap-1">
                 <Trophy className="w-4 h-4" />
-                <span className="truncate">{match.league}</span>
+                <span>{match.league}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />
@@ -131,41 +147,36 @@ export function MatchCard({ match, className }: MatchCardProps) {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">
-                {bestStreams.length} stream{bestStreams.length !== 1 ? 's' : ''} available
-              </span>
+            {/* Stream Count */}
+            <div className="flex items-center gap-2 text-sm text-gray-400">
+              <Users className="w-4 h-4" />
+              <span>{bestStreams.length} stream{bestStreams.length !== 1 ? 's' : ''} available</span>
             </div>
 
-            <div className="flex gap-2 flex-wrap">
+            {/* Stream Buttons */}
+            <div className="flex gap-3 mt-6">
               {bestStreams.slice(0, 2).map((source, index) => (
                 <Button
                   key={source.id}
                   onClick={() => handleStreamClick(source.embed, source.name, source.quality)}
-                  className={cn(
-                    'flex-1 min-w-0 transition-smooth flex-col gap-1 h-auto py-2',
-                    isLive 
-                      ? 'gradient-live shadow-live hover:shadow-live/80 text-white border-0' 
-                      : 'gradient-primary shadow-primary hover:shadow-primary/80 text-primary-foreground border-0'
-                  )}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white border-0 py-3 px-4 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2"
                 >
-                  <div className="flex items-center gap-2">
-                    <Play className="w-4 h-4" />
+                  <Play className="w-5 h-5 fill-current" />
+                  <div className="flex flex-col items-start">
                     <span>{source.name || `Stream ${index + 1}`}</span>
+                    {source.quality && (
+                      <span className="text-xs text-red-200">{source.quality}</span>
+                    )}
                   </div>
-                  {source.quality && (
-                    <span className="text-xs opacity-80">{source.quality}</span>
-                  )}
                 </Button>
               ))}
               {bestStreams.length > 2 && (
                 <Button
-                  variant="outline"
                   onClick={() => handleStreamClick(bestStreams[2].embed, bestStreams[2].name, bestStreams[2].quality)}
-                  className="border-border/50 hover:bg-muted/50 text-muted-foreground"
+                  variant="outline"
+                  className="px-4 py-3 border-gray-600 text-gray-300 hover:bg-gray-800 hover:border-gray-500 rounded-lg"
                 >
-                  +{bestStreams.length - 2} more
+                  +{bestStreams.length - 2}
                 </Button>
               )}
             </div>
